@@ -1,0 +1,81 @@
+#include <Servo.h>        // Inclui a biblioteca para controlar o servo motor
+#include <TCS3200.h>      // Inclui a biblioteca para o sensor de cor TCS3200/TCS230
+
+Servo servoMotor;         // Declara o objeto servoMotor para controlar o servo
+TCS3200 colorSensor(4, 5, 6);  // Define o sensor de cor usando os pinos S2, S3 e OUT
+
+int sensor1Pin = 2;       // Define o pino 2 para o sensor de presença
+int motorPin = 3;         // Define o pino 3 para controlar o motor
+
+void setup() {
+  Serial.begin(9600);         // Inicializa a comunicação serial a 9600 bps
+  pinMode(sensor1Pin, INPUT); // Configura o sensor de presença como entrada
+  pinMode(motorPin, OUTPUT);  // Configura o pino do motor como saída
+
+  servoMotor.attach(9);       // Conecta o servo motor ao pino 9
+  servoMotor.write(0);        // Define a posição inicial do servo em 0 graus
+
+  colorSensor.begin();        // Inicia o sensor de cor
+  colorSensor.setFrequency(TCS3200::FREQUENCY_20); // Define a frequência do sensor para 20% para leituras estáveis
+}
+
+void loop() {
+  bool sensor1 = digitalRead(sensor1Pin);  // Lê o estado do sensor de presença
+  if (sensor1) {                           // Se o sensor detectar algo:
+    digitalWrite(motorPin, HIGH);          // Liga o motor
+    Serial.println("Motor ligado: Objeto detectado!");
+    delay(1000);                           // Aguarda 1 segundo
+
+    int cor = rgbcolor();                  // Chama a função rgbcolor() para detectar a cor
+    servomotor(cor);                       // Move o servo motor de acordo com a cor detectada
+
+    delay(1000);                           // Aguarda 1 segundo
+  } else {                                 // Se nada for detectado:
+    digitalWrite(motorPin, LOW);           // Desliga o motor
+    Serial.println("Motor desligado: Nenhum objeto detectado.");
+  }
+  delay(500);                              // Aguarda 500 ms antes de checar novamente
+}
+
+// Função para detectar a cor do objeto
+int rgbcolor() {
+  int red = colorSensor.readRed();         // Lê o valor do componente vermelho
+  int green = colorSensor.readGreen();     // Lê o valor do componente verde
+  int blue = colorSensor.readBlue();       // Lê o valor do componente azul
+
+  // Exibe os valores de RGB no monitor serial
+  Serial.print("R: "); Serial.print(red);
+  Serial.print(" G: "); Serial.print(green);
+  Serial.print(" B: "); Serial.println(blue);
+
+  // Determina a cor dominante e retorna um código para cada cor
+  if (blue > red && blue > green) {        // Se azul é dominante:
+    Serial.println("O objeto é azul!");
+    return 1;                              // Retorna 1 para azul
+  } else if (red > green && red > blue) {  // Se vermelho é dominante:
+    Serial.println("O objeto é vermelho!");
+    return 2;                              // Retorna 2 para vermelho
+  } else if (green > red && green > blue) {// Se verde é dominante:
+    Serial.println("O objeto é verde!");
+    return 3;                              // Retorna 3 para verde
+  } else {                                 // Caso não consiga determinar:
+    Serial.println("Cor desconhecida!");
+    return 0;                              // Retorna 0 para cor desconhecida
+  }
+}
+
+// Função para mover o servo motor com base na cor detectada
+void servomotor(int cor) {
+  if (cor == 1) {                    // Se a cor for azul:
+    servoMotor.write(0);             // Move o servo para 0 graus
+    Serial.println("Servo em 0 graus");
+  } else if (cor == 2) {             // Se a cor for vermelho:
+    servoMotor.write(90);            // Move o servo para 90 graus
+    Serial.println("Servo em 90 graus");
+  } else if (cor == 3) {             // Se a cor for verde:
+    servoMotor.write(180);           // Move o servo para 180 graus
+    Serial.println("Servo em 180 graus");
+  } else {                           // Se a cor for desconhecida:
+    Serial.println("Comando inválido para o servo.");
+  }
+}
